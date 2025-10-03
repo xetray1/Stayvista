@@ -38,13 +38,14 @@ mongoose.connection.on("disconnected", () => {
 });
 
 //middlewares
-// CORS configuration
+// CORS configuration — allow requests from any origin.
+// Using `origin: true` reflects the request origin, which allows credentials (cookies, auth headers)
+// while still permitting cross-origin requests from any client. In production you may want to
+// restrict this to a specific whitelist (e.g. CLIENT_URL / ADMIN_URL).
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.CLIENT_URL, process.env.ADMIN_URL].filter(Boolean)
-    : true,
+  origin: true,
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
