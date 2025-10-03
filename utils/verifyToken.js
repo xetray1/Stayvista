@@ -2,34 +2,68 @@ import jwt from "jsonwebtoken";
 import { createError } from "../utils/error.js";
 
 export const verifyToken = (req, res, next) => {
-  const token = req.cookies.access_token;
+  const scopeHeader = (req.headers["x-session-scope"] || "").toString().toLowerCase();
+  const cookies = req.cookies || {};
+
+  const resolveToken = () => {
+    switch (scopeHeader) {
+      case "super":
+        return cookies.super_admin_access_token || cookies.access_token;
+      case "admin":
+        return (
+          cookies.super_admin_access_token ||
+          cookies.admin_access_token ||
+          cookies.access_token
+        );
+      case "member":
+        return cookies.member_access_token || cookies.access_token;
+      default:
+        return (
+          cookies.super_admin_access_token ||
+          cookies.admin_access_token ||
+          cookies.member_access_token ||
+          cookies.access_token
+        );
+    }
+  };
+
+  const token = resolveToken();
   if (!token) {
     return next(createError(401, "You are not authenticated!"));
   }
 
-  jwt.verify(token, process.env.JWT, (err, user) => {
-    if (err) return next(createError(403, "Token is not valid!"));
+  const jwtSecret = process.env.JWT || process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    return next(createError(500, "JWT secret is not configured"));
+  }
+  
+  jwt.verify(token, jwtSecret, (err, user) => {
+    if (err) {
+      return next(createError(403, "Token is not valid!"));
+    }
     req.user = user;
     next();
   });
 };
 
 export const verifyUser = (req, res, next) => {
-  verifyToken(req, res, next, () => {
-    if (req.user.id === req.params.id || req.user.isAdmin) {
+  verifyToken(req, res, () => {
+    if (req.user.id === req.params.id || req.user.superAdmin) {
       next();
     } else {
-      return next(createError(403, "You are not authorized!"));
+      next(createError(403, "You are not authorized!"));
     }
   });
 };
 
 export const verifyAdmin = (req, res, next) => {
-  verifyToken(req, res, next, () => {
-    if (req.user.isAdmin) {
+  verifyToken(req, res, () => {
+    if (req.user.superAdmin) {
       next();
     } else {
-      return next(createError(403, "You are not authorized!"));
+      next(createError(403, "You are not authorized!"));
     }
   });
 };
+
+export const verifySuperAdmin = verifyAdmin;

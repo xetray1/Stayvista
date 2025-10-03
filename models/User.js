@@ -34,6 +34,15 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    superAdmin: {
+      type: Boolean,
+      default: false,
+    },
+    managedHotel: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Hotel",
+      default: null,
+    },
   },
   { timestamps: true }
 );

@@ -35,31 +35,75 @@ export const updateRoom = async (req, res, next) => {
 };
 export const updateRoomAvailability = async (req, res, next) => {
   try {
-    await Room.updateOne(
-      { "roomNumbers._id": req.params.id },
-      {
-        $push: {
-          "roomNumbers.$.unavailableDates": req.body.dates
+    const incomingDates = Array.isArray(req.body.dates) ? req.body.dates : [];
+    const operation = typeof req.body.operation === "string" ? req.body.operation.toLowerCase() : "add";
+
+    const normalizedDates = incomingDates
+      .map((value) => {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+          return null;
+        }
+        date.setHours(0, 0, 0, 0);
+        return date;
+      })
+      .filter(Boolean);
+
+    if ((operation === "add" || operation === "remove") && !normalizedDates.length) {
+      return res.status(400).json({ message: "No valid dates provided to update availability." });
+    }
+
+    const roomNumberFilter = { "roomNumbers._id": req.params.id };
+
+    if (operation === "clear") {
+      await Room.updateOne(roomNumberFilter, {
+        $set: { "roomNumbers.$.unavailableDates": [] },
+      });
+      return res.status(200).json({ message: "Availability cleared." });
+    }
+
+    if (operation === "remove") {
+      await Room.updateOne(roomNumberFilter, {
+        $pull: {
+          "roomNumbers.$.unavailableDates": { $in: normalizedDates },
         },
-      }
-    );
-    res.status(200).json("Room status has been updated.");
+      });
+      return res.status(200).json({ message: "Dates removed from availability." });
+    }
+
+    await Room.updateOne(roomNumberFilter, {
+      $addToSet: {
+        "roomNumbers.$.unavailableDates": {
+          $each: normalizedDates,
+        },
+      },
+    });
+    res.status(200).json({ message: "Room status has been updated." });
   } catch (err) {
     next(err);
   }
 };
 export const deleteRoom = async (req, res, next) => {
-  const hotelId = req.params.hotelid;
+  const roomId = req.params.id;
   try {
-    await Room.findByIdAndDelete(req.params.id);
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return next(createError(404, "Room not found"));
+    }
+
+    await Room.findByIdAndDelete(roomId);
+
     try {
-      await Hotel.findByIdAndUpdate(hotelId, {
-        $pull: { rooms: req.params.id },
-      });
+      await Hotel.updateMany(
+        { rooms: roomId },
+        { $pull: { rooms: roomId } }
+      );
     } catch (err) {
       next(err);
+      return;
     }
-    res.status(200).json("Room has been deleted.");
+
+    res.status(200).json({ message: "Room has been deleted." });
   } catch (err) {
     next(err);
   }

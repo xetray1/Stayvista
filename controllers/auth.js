@@ -3,6 +3,14 @@ import bcrypt from "bcryptjs";
 import { createError } from "../utils/error.js";
 import jwt from "jsonwebtoken";
 
+const resolveJwtSecret = () => {
+  const secret = process.env.JWT || process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT secret is not configured. Set JWT or JWT_SECRET in the environment.");
+  }
+  return secret;
+};
+
 export const register = async (req, res, next) => {
   try {
     const salt = bcrypt.genSaltSync(10);
@@ -31,18 +39,47 @@ export const login = async (req, res, next) => {
     if (!isPasswordCorrect)
       return next(createError(400, "Wrong password or username!"));
 
+    const jwtSecret = resolveJwtSecret();
     const token = jwt.sign(
-      { id: user._id, isAdmin: user.isAdmin },
-      process.env.JWT
+      {
+        id: user._id,
+        isAdmin: user.isAdmin,
+        superAdmin: user.superAdmin,
+        managedHotel: user.managedHotel ?? null,
+      },
+      jwtSecret
     );
 
-    const { password, isAdmin, ...otherDetails } = user._doc;
-    res
-      .cookie("access_token", token, {
-        httpOnly: true,
-      })
-      .status(200)
-      .json({ details: { ...otherDetails }, isAdmin });
+    const { password, ...otherDetails } = user._doc;
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+    };
+
+    // Always maintain the legacy cookie for compatibility
+    res.cookie("access_token", token, cookieOptions);
+
+    if (user.superAdmin) {
+      res.cookie("super_admin_access_token", token, cookieOptions);
+    }
+
+    if (user.isAdmin && !user.superAdmin) {
+      res.cookie("admin_access_token", token, cookieOptions);
+    }
+
+    if (!user.isAdmin && !user.superAdmin) {
+      res.cookie("member_access_token", token, cookieOptions);
+    }
+
+    res.status(200).json({
+        details: {
+          ...otherDetails,
+          isAdmin: user.isAdmin,
+          superAdmin: user.superAdmin,
+          managedHotel: user.managedHotel ?? null,
+        },
+      });
   } catch (err) {
     next(err);
   }

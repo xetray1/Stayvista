@@ -5,11 +5,24 @@ import authRoute from "./routes/auth.js";
 import usersRoute from "./routes/users.js";
 import hotelsRoute from "./routes/hotels.js";
 import roomsRoute from "./routes/rooms.js";
+import uploadRoute from "./routes/uploads.js";
+import bookingsRoute from "./routes/bookings.js";
+import transactionsRoute from "./routes/transactions.js";
+import analyticsRoute from "./routes/analytics.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 
 const app = express();
 dotenv.config();
+
+// Environment validation
+const requiredEnvVars = ['MONGO', 'JWT'];
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+if (missingEnvVars.length > 0) {
+  console.error('Missing required environment variables:', missingEnvVars.join(', '));
+  process.exit(1);
+}
 
 const connect = async () => {
   try {
@@ -25,27 +38,49 @@ mongoose.connection.on("disconnected", () => {
 });
 
 //middlewares
-app.use(cors())
-app.use(cookieParser())
+// CORS configuration
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? [process.env.CLIENT_URL, process.env.ADMIN_URL].filter(Boolean)
+    : true,
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+app.use(cookieParser());
 app.use(express.json());
 
 app.use("/api/auth", authRoute);
 app.use("/api/users", usersRoute);
 app.use("/api/hotels", hotelsRoute);
 app.use("/api/rooms", roomsRoute);
+app.use("/api/upload", uploadRoute);
+app.use("/api/bookings", bookingsRoute);
+app.use("/api/transactions", transactionsRoute);
+app.use("/api/analytics", analyticsRoute);
 
+// Global error handler
 app.use((err, req, res, next) => {
   const errorStatus = err.status || 500;
   const errorMessage = err.message || "Something went wrong!";
+  
+  // Log error for debugging (only in development)
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('Error:', err);
+  }
+  
   return res.status(errorStatus).json({
     success: false,
     status: errorStatus,
     message: errorMessage,
-    stack: err.stack,
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
   });
 });
 
-app.listen(8800, () => {
+const PORT = process.env.PORT || 8800;
+
+app.listen(PORT, () => {
   connect();
-  console.log("Connected to backend.");
+  console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
 });
