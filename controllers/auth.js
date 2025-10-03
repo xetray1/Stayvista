@@ -51,9 +51,11 @@ export const login = async (req, res, next) => {
     );
 
     const { password, ...otherDetails } = user._doc;
+    const isProduction = process.env.NODE_ENV === "production";
     const cookieOptions = {
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: isProduction ? "none" : "lax",
+      secure: isProduction,
       path: "/",
     };
 
