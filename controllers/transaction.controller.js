@@ -1,5 +1,5 @@
-import Transaction from "../models/Transaction.js";
-import Booking from "../models/Booking.js";
+import Transaction from "../models/transaction.model.js";
+import Booking from "../models/booking.model.js";
 import { createError } from "../utils/error.js";
 
 const generateTransactionReference = () => {
@@ -91,7 +91,9 @@ export const createUserTransaction = async (req, res, next) => {
     const isOwner = booking.user?._id?.toString() === req.user.id;
     const isPrivileged = req.user.superAdmin || req.user.isAdmin;
     if (!isOwner && !isPrivileged) {
-      return next(createError(403, "You are not authorized to pay for this booking."));
+      return next(
+        createError(403, "You are not authorized to pay for this booking.")
+      );
     }
 
     const chargeAmount = booking.totalAmount;
@@ -144,7 +146,9 @@ export const listTransactions = async (req, res, next) => {
 
     if (req.user.isAdmin && !req.user.superAdmin) {
       if (!req.user.managedHotel) {
-        return next(createError(403, "Hotel admins must be assigned to a hotel."));
+        return next(
+          createError(403, "Hotel admins must be assigned to a hotel.")
+        );
       }
       filter.hotel = req.user.managedHotel;
     } else if (!req.user.isAdmin) {
@@ -174,15 +178,24 @@ export const getTransaction = async (req, res, next) => {
       return next(createError(404, "Transaction not found."));
     }
 
-    const bookingHotelId = transaction.booking?.hotel?.toString() || transaction.hotel?._id?.toString();
+    const bookingHotelId =
+      transaction.booking?.hotel?.toString() ||
+      transaction.hotel?._id?.toString();
 
     if (!req.user.isAdmin) {
       if (transaction.user?._id?.toString() !== req.user.id) {
-        return next(createError(403, "You are not authorized to view this transaction."));
+        return next(
+          createError(403, "You are not authorized to view this transaction.")
+        );
       }
     } else if (!req.user.superAdmin) {
-      if (!req.user.managedHotel || req.user.managedHotel.toString() !== bookingHotelId) {
-        return next(createError(403, "You are not authorized to view this transaction."));
+      if (
+        !req.user.managedHotel ||
+        req.user.managedHotel.toString() !== bookingHotelId
+      ) {
+        return next(
+          createError(403, "You are not authorized to view this transaction.")
+        );
       }
     }
 

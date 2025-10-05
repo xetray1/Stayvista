@@ -1,4 +1,4 @@
-import User from "../models/User.js";
+import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import { createError } from "../utils/error.js";
 import jwt from "jsonwebtoken";
@@ -6,7 +6,9 @@ import jwt from "jsonwebtoken";
 const resolveJwtSecret = () => {
   const secret = process.env.JWT || process.env.JWT_SECRET;
   if (!secret) {
-    throw new Error("JWT secret is not configured. Set JWT or JWT_SECRET in the environment.");
+    throw new Error(
+      "JWT secret is not configured. Set JWT or JWT_SECRET in the environment."
+    );
   }
   return secret;
 };
@@ -75,13 +77,13 @@ export const login = async (req, res, next) => {
     }
 
     res.status(200).json({
-        details: {
-          ...otherDetails,
-          isAdmin: user.isAdmin,
-          superAdmin: user.superAdmin,
-          managedHotel: user.managedHotel ?? null,
-        },
-      });
+      details: {
+        ...otherDetails,
+        isAdmin: user.isAdmin,
+        superAdmin: user.superAdmin,
+        managedHotel: user.managedHotel ?? null,
+      },
+    });
   } catch (err) {
     next(err);
   }

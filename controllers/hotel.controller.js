@@ -1,5 +1,5 @@
-import Hotel from "../models/Hotel.js";
-import Room from "../models/Room.js";
+import Hotel from "../models/hotel.model.js";
+import Room from "../models/room.model.js";
 
 export const createHotel = async (req, res, next) => {
   const newHotel = new Hotel(req.body);
@@ -87,7 +87,9 @@ export const countByCity = async (req, res, next) => {
   try {
     const list = await Promise.all(
       cities.map((city) => {
-        return Hotel.countDocuments({ city: { $regex: new RegExp(`^${city}$`, "i") } });
+        return Hotel.countDocuments({
+          city: { $regex: new RegExp(`^${city}$`, "i") },
+        });
       })
     );
     res.status(200).json(list);
@@ -156,7 +158,8 @@ export const getHotelRooms = async (req, res, next) => {
     }
 
     const rooms = await Room.find({ _id: { $in: hotel.rooms } }).lean();
-    const requestedRange = checkIn && checkOut ? buildDateRange(checkIn, checkOut) : [];
+    const requestedRange =
+      checkIn && checkOut ? buildDateRange(checkIn, checkOut) : [];
 
     const roomsWithAvailability = rooms.map((room) => {
       const roomNumbers = (room.roomNumbers || []).map((roomNumber) => {
@@ -168,7 +171,9 @@ export const getHotelRooms = async (req, res, next) => {
             .map((date) => new Date(date).getTime())
             .filter((value) => !Number.isNaN(value))
         );
-        const isUnavailableForRange = requestedRange.some((ts) => unavailableSet.has(ts));
+        const isUnavailableForRange = requestedRange.some((ts) =>
+          unavailableSet.has(ts)
+        );
         return {
           ...roomNumber,
           unavailableDates,

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-import User from "../models/User.js";
+import User from "../models/user.model.js";
 import { createError } from "../utils/error.js";
 
 const AVAILABLE_AVATARS = [
@@ -18,15 +18,24 @@ export const updateUser = async (req, res, next) => {
   try {
     const payload = { ...req.body };
 
-    if (!req.user?.isAdmin && Object.prototype.hasOwnProperty.call(payload, "isAdmin")) {
+    if (
+      !req.user?.isAdmin &&
+      Object.prototype.hasOwnProperty.call(payload, "isAdmin")
+    ) {
       delete payload.isAdmin;
     }
 
-    if (!req.user?.superAdmin && Object.prototype.hasOwnProperty.call(payload, "superAdmin")) {
+    if (
+      !req.user?.superAdmin &&
+      Object.prototype.hasOwnProperty.call(payload, "superAdmin")
+    ) {
       delete payload.superAdmin;
     }
 
-    if (!req.user?.superAdmin && Object.prototype.hasOwnProperty.call(payload, "managedHotel")) {
+    if (
+      !req.user?.superAdmin &&
+      Object.prototype.hasOwnProperty.call(payload, "managedHotel")
+    ) {
       delete payload.managedHotel;
     }
 
@@ -45,7 +54,9 @@ export const updateUser = async (req, res, next) => {
         if (!mongoose.Types.ObjectId.isValid(payload.managedHotel)) {
           return next(createError(400, "Invalid hotel selection."));
         }
-        payload.managedHotel = new mongoose.Types.ObjectId(payload.managedHotel);
+        payload.managedHotel = new mongoose.Types.ObjectId(
+          payload.managedHotel
+        );
       }
     }
 
@@ -119,7 +130,9 @@ export const resetUserPassword = async (req, res, next) => {
     const { newPassword } = req.body;
 
     if (typeof newPassword !== "string" || newPassword.trim().length < 6) {
-      return next(createError(400, "New password must be at least 6 characters long."));
+      return next(
+        createError(400, "New password must be at least 6 characters long.")
+      );
     }
 
     const targetUser = await User.findById(req.params.id);
@@ -134,7 +147,9 @@ export const resetUserPassword = async (req, res, next) => {
     targetUser.password = hash;
     await targetUser.save();
 
-    return res.status(200).json({ message: "Password has been reset successfully." });
+    return res
+      .status(200)
+      .json({ message: "Password has been reset successfully." });
   } catch (err) {
     next(err);
   }

@@ -1,5 +1,5 @@
-import Room from "../models/Room.js";
-import Hotel from "../models/Hotel.js";
+import Room from "../models/room.model.js";
+import Hotel from "../models/hotel.model.js";
 import { createError } from "../utils/error.js";
 
 export const createRoom = async (req, res, next) => {
@@ -36,7 +36,10 @@ export const updateRoom = async (req, res, next) => {
 export const updateRoomAvailability = async (req, res, next) => {
   try {
     const incomingDates = Array.isArray(req.body.dates) ? req.body.dates : [];
-    const operation = typeof req.body.operation === "string" ? req.body.operation.toLowerCase() : "add";
+    const operation =
+      typeof req.body.operation === "string"
+        ? req.body.operation.toLowerCase()
+        : "add";
 
     const normalizedDates = incomingDates
       .map((value) => {
@@ -49,8 +52,13 @@ export const updateRoomAvailability = async (req, res, next) => {
       })
       .filter(Boolean);
 
-    if ((operation === "add" || operation === "remove") && !normalizedDates.length) {
-      return res.status(400).json({ message: "No valid dates provided to update availability." });
+    if (
+      (operation === "add" || operation === "remove") &&
+      !normalizedDates.length
+    ) {
+      return res
+        .status(400)
+        .json({ message: "No valid dates provided to update availability." });
     }
 
     const roomNumberFilter = { "roomNumbers._id": req.params.id };
@@ -68,7 +76,9 @@ export const updateRoomAvailability = async (req, res, next) => {
           "roomNumbers.$.unavailableDates": { $in: normalizedDates },
         },
       });
-      return res.status(200).json({ message: "Dates removed from availability." });
+      return res
+        .status(200)
+        .json({ message: "Dates removed from availability." });
     }
 
     await Room.updateOne(roomNumberFilter, {
@@ -94,10 +104,7 @@ export const deleteRoom = async (req, res, next) => {
     await Room.findByIdAndDelete(roomId);
 
     try {
-      await Hotel.updateMany(
-        { rooms: roomId },
-        { $pull: { rooms: roomId } }
-      );
+      await Hotel.updateMany({ rooms: roomId }, { $pull: { rooms: roomId } });
     } catch (err) {
       next(err);
       return;

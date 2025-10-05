@@ -14,8 +14,14 @@ cloudinary.config({
 });
 
 const ensureCloudinaryConfigured = () => {
-  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-    throw new Error("Cloudinary environment variables are not fully configured.");
+  if (
+    !process.env.CLOUDINARY_CLOUD_NAME ||
+    !process.env.CLOUDINARY_API_KEY ||
+    !process.env.CLOUDINARY_API_SECRET
+  ) {
+    throw new Error(
+      "Cloudinary environment variables are not fully configured."
+    );
   }
 };
 
@@ -27,7 +33,11 @@ const upload = multer({
     if (allowedMimeTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Unsupported file format. Please upload JPG, PNG, WEBP, or GIF."));
+      cb(
+        new Error(
+          "Unsupported file format. Please upload JPG, PNG, WEBP, or GIF."
+        )
+      );
     }
   },
   limits: {
@@ -43,7 +53,9 @@ router.post("/hotels", upload.single("image"), async (req, res, next) => {
   try {
     ensureCloudinaryConfigured();
 
-    const encodedFile = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+    const encodedFile = `data:${
+      req.file.mimetype
+    };base64,${req.file.buffer.toString("base64")}`;
 
     const result = await cloudinary.uploader.upload(encodedFile, {
       folder: "stayvista/hotels",
@@ -69,7 +81,9 @@ router.post("/rooms", upload.single("image"), async (req, res, next) => {
   try {
     ensureCloudinaryConfigured();
 
-    const encodedFile = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+    const encodedFile = `data:${
+      req.file.mimetype
+    };base64,${req.file.buffer.toString("base64")}`;
 
     const result = await cloudinary.uploader.upload(encodedFile, {
       folder: "stayvista/rooms",

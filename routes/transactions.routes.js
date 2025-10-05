@@ -2,16 +2,16 @@ import express from "express";
 import {
   createTransaction,
   createUserTransaction,
-  getTransaction,
   listTransactions,
-} from "../controllers/transaction.js";
-import { verifyAdmin, verifyToken } from "../utils/verifyToken.js";
+  getTransaction,
+} from "../controllers/transaction.controller.js";
+import { verifyAdmin, verifyToken } from "../utils/auth.middleware.js";
 
 const router = express.Router();
 
 router.post("/", verifyAdmin, createTransaction);
-router.post("/checkout", verifyToken, createUserTransaction);
-router.get("/", verifyToken, listTransactions);
+router.post("/pay", verifyToken, createUserTransaction);
+router.get("/", verifyAdmin, listTransactions);
 router.get("/:id", verifyToken, getTransaction);
 
 export default router;

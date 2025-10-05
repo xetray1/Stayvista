@@ -1,6 +1,6 @@
-import Booking from "../models/Booking.js";
-import Hotel from "../models/Hotel.js";
-import RoomModel from "../models/Room.js";
+import Booking from "../models/booking.model.js";
+import Hotel from "../models/hotel.model.js";
+import RoomModel from "../models/room.model.js";
 import { createError } from "../utils/error.js";
 
 const calculateNights = (checkIn, checkOut) => {
@@ -80,7 +80,10 @@ const ensureAvailability = (availabilityChecks, checkIn, checkOut) => {
       stayDates.includes(new Date(date).setHours(0, 0, 0, 0))
     );
     if (conflict) {
-      throw createError(409, "One or more selected rooms are no longer available.");
+      throw createError(
+        409,
+        "One or more selected rooms are no longer available."
+      );
     }
   });
 };
@@ -136,12 +139,16 @@ export const getBooking = async (req, res, next) => {
     }
 
     if (!req.user.isAdmin && booking.user._id.toString() !== req.user.id) {
-      return next(createError(403, "You are not authorized to view this booking."));
+      return next(
+        createError(403, "You are not authorized to view this booking.")
+      );
     }
 
     if (req.user.isAdmin && !req.user.superAdmin && req.user.managedHotel) {
       if (booking.hotel?._id?.toString() !== req.user.managedHotel.toString()) {
-        return next(createError(403, "You are not authorized to view this booking."));
+        return next(
+          createError(403, "You are not authorized to view this booking.")
+        );
       }
     }
 
@@ -171,7 +178,9 @@ export const listBookings = async (req, res, next) => {
       if (req.user.managedHotel) {
         filter.hotel = req.user.managedHotel;
       } else {
-        return next(createError(403, "Hotel admins must be assigned to a hotel."));
+        return next(
+          createError(403, "Hotel admins must be assigned to a hotel.")
+        );
       }
     }
 
