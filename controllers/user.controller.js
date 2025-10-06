@@ -141,6 +141,22 @@ export const resetUserPassword = async (req, res, next) => {
       return next(createError(404, "User not found."));
     }
 
+    const requester = req.user;
+
+    if (!requester) {
+      return next(createError(401, "Authentication required."));
+    }
+
+    const isSelf = requester.id?.toString() === targetUser._id.toString();
+
+    const canResetOthers = Boolean(requester.superAdmin || requester.isAdmin);
+
+    if (!isSelf && !canResetOthers) {
+      return next(
+        createError(403, "You are not authorized to reset this password.")
+      );
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(newPassword.trim(), salt);
 

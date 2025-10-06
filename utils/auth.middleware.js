@@ -48,21 +48,31 @@ export const verifyToken = (req, res, next) => {
 
 export const verifyUser = (req, res, next) => {
   verifyToken(req, res, () => {
-    if (req.user.id === req.params.id || req.user.superAdmin) {
-      next();
-    } else {
-      next(createError(403, "You are not authorized!"));
+    const user = req.user;
+    if (!user) {
+      return next(createError(401, "You are not authenticated!"));
     }
+
+    if (user.id === req.params.id || user.superAdmin || user.isAdmin) {
+      return next();
+    }
+
+    return next(createError(403, "You are not authorized!"));
   });
 };
 
 export const verifyAdmin = (req, res, next) => {
   verifyToken(req, res, () => {
-    if (req.user.superAdmin) {
-      next();
-    } else {
-      next(createError(403, "You are not authorized!"));
+    const user = req.user;
+    if (!user) {
+      return next(createError(401, "You are not authenticated!"));
     }
+
+    if (user.superAdmin || user.isAdmin) {
+      return next();
+    }
+
+    return next(createError(403, "You are not authorized!"));
   });
 };
 
