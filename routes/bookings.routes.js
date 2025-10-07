@@ -12,7 +12,7 @@ const router = express.Router();
 
 router.post("/", verifyToken, createBooking);
 router.get("/:id", verifyToken, getBooking);
-router.get("/", verifyAdmin, listBookings);
+router.get("/", verifyToken, listBookings);
 router.put("/:id/status", verifyAdmin, updateBookingStatus);
 router.delete("/:id", verifyAdmin, deleteBooking);
 

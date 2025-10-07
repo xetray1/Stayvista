@@ -204,3 +204,47 @@ export const getTransaction = async (req, res, next) => {
     next(err);
   }
 };
+
+export const deleteTransaction = async (req, res, next) => {
+  try {
+    const transaction = await Transaction.findById(req.params.id).populate(
+      "booking",
+      "hotel"
+    );
+
+    if (!transaction) {
+      return next(createError(404, "Transaction not found."));
+    }
+
+    const bookingHotelId =
+      transaction.booking?.hotel?.toString() || transaction.hotel?.toString();
+
+    if (req.user.isAdmin) {
+      if (!req.user.superAdmin) {
+        if (!req.user.managedHotel) {
+          return next(
+            createError(403, "Hotel admins must be assigned to a hotel.")
+          );
+        }
+
+        if (req.user.managedHotel.toString() !== bookingHotelId) {
+          return next(
+            createError(403, "You are not authorized to delete this transaction.")
+          );
+        }
+      }
+    } else {
+      if (transaction.user?.toString() !== req.user.id) {
+        return next(
+          createError(403, "You are not authorized to delete this transaction.")
+        );
+      }
+    }
+
+    await transaction.deleteOne();
+
+    res.status(200).json({ message: "Transaction deleted." });
+  } catch (err) {
+    next(err);
+  }
+};

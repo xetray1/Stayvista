@@ -1,6 +1,7 @@
 import Booking from "../models/booking.model.js";
 import Hotel from "../models/hotel.model.js";
 import RoomModel from "../models/room.model.js";
+import Transaction from "../models/transaction.model.js";
 import { createError } from "../utils/error.js";
 
 const calculateNights = (checkIn, checkOut) => {
@@ -86,6 +87,28 @@ const ensureAvailability = (availabilityChecks, checkIn, checkOut) => {
       );
     }
   });
+};
+
+const computeStayDates = (checkIn, checkOut) => {
+  const dates = [];
+  const start = new Date(checkIn);
+  const end = new Date(checkOut);
+
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) {
+    return dates;
+  }
+
+  const cursor = new Date(start);
+  cursor.setHours(0, 0, 0, 0);
+  const finalDate = new Date(end);
+  finalDate.setHours(0, 0, 0, 0);
+
+  while (cursor < finalDate) {
+    dates.push(new Date(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return dates;
 };
 
 export const createBooking = async (req, res, next) => {
@@ -218,8 +241,47 @@ export const updateBookingStatus = async (req, res, next) => {
 
 export const deleteBooking = async (req, res, next) => {
   try {
-    await Booking.findByIdAndDelete(req.params.id);
-    res.status(200).json({ success: true });
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return next(createError(404, "Booking not found."));
+    }
+
+    if (req.user.isAdmin && !req.user.superAdmin) {
+      if (!req.user.managedHotel) {
+        return next(
+          createError(403, "Hotel admins must be assigned to a hotel.")
+        );
+      }
+
+      if (booking.hotel?.toString() !== req.user.managedHotel.toString()) {
+        return next(
+          createError(403, "You are not authorized to delete this booking.")
+        );
+      }
+    }
+
+    const stayDates = computeStayDates(booking.checkIn, booking.checkOut);
+
+    if (stayDates.length) {
+      const availabilityUpdates = booking.rooms.map(({ roomNumberId }) =>
+        RoomModel.updateOne(
+          { "roomNumbers._id": roomNumberId },
+          {
+            $pull: {
+              "roomNumbers.$.unavailableDates": { $in: stayDates },
+            },
+          }
+        )
+      );
+
+      await Promise.all(availabilityUpdates);
+    }
+
+    await Transaction.deleteMany({ booking: booking._id });
+    await booking.deleteOne();
+
+    res.status(200).json({ message: "Booking deleted." });
   } catch (err) {
     next(err);
   }
